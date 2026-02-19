@@ -32,7 +32,7 @@ function withFakeAsyncTestModule(fn: (fakeAsyncTestModule: any) => any): any {
  * @publicApi
  */
 export function resetFakeAsyncZone(): void {
-  withFakeAsyncTestModule((v) => v.resetFakeAsyncZone());
+  _getFakeAsyncAdapter().resetFakeAsyncZone();
 }
 
 export function resetFakeAsyncZoneIfExists(): void {
@@ -68,7 +68,7 @@ export function resetFakeAsyncZoneIfExists(): void {
  * @publicApi
  */
 export function fakeAsync(fn: Function, options?: {flush?: boolean}): (...args: any[]) => any {
-  return withFakeAsyncTestModule((v) => v.fakeAsync(fn, options));
+  return (...args) => _getFakeAsyncAdapter().fakeAsync(fn, options)(...args);
 }
 
 /**
@@ -139,11 +139,9 @@ export function fakeAsync(fn: Function, options?: {flush?: boolean}): (...args: 
  */
 export function tick(
   millis: number = 0,
-  tickOptions: {processNewMacroTasksSynchronously: boolean} = {
-    processNewMacroTasksSynchronously: true,
-  },
-): void {
-  return withFakeAsyncTestModule((m) => m.tick(millis, tickOptions));
+  tickOptions?: {processNewMacroTasksSynchronously: boolean},
+): Promise<void> | void {
+  return _getFakeAsyncAdapter().tick(millis, tickOptions);
 }
 
 /**
@@ -159,8 +157,8 @@ export function tick(
  *
  * @publicApi
  */
-export function flush(maxTurns?: number): number {
-  return withFakeAsyncTestModule((m) => m.flush(maxTurns));
+export function flush(maxTurns?: number): Promise<number> | number {
+  return _getFakeAsyncAdapter().flush(maxTurns);
 }
 
 /**
@@ -171,7 +169,7 @@ export function flush(maxTurns?: number): number {
  * @publicApi
  */
 export function discardPeriodicTasks(): void {
-  return withFakeAsyncTestModule((m) => m.discardPeriodicTasks());
+  return _getFakeAsyncAdapter().discardPeriodicTasks();
 }
 
 /**
@@ -181,6 +179,41 @@ export function discardPeriodicTasks(): void {
  *
  * @publicApi
  */
-export function flushMicrotasks(): void {
-  return withFakeAsyncTestModule((m) => m.flushMicrotasks());
+export function flushMicrotasks(): Promise<void> | void {
+  return _getFakeAsyncAdapter().flushMicrotasks();
 }
+
+function _getFakeAsyncAdapter(): ɵFakeAsyncAdapter {
+  return _fakeAsyncAdapter;
+}
+
+export function ɵsetFakeAsyncAdapter(adapter: ɵFakeAsyncAdapter): void {
+  _fakeAsyncAdapter = adapter;
+}
+
+export function ɵresetFakeAsyncAdapter(): void {
+  _fakeAsyncAdapter = zoneFakeAsyncAdapter;
+}
+
+export interface ɵFakeAsyncAdapter {
+  resetFakeAsyncZone: () => void;
+  flushMicrotasks: () => Promise<void> | void;
+  discardPeriodicTasks: () => void;
+  tick: (
+    millis: number,
+    tickOptions?: {processNewMacroTasksSynchronously: boolean},
+  ) => Promise<void> | void;
+  flush: (maxTurns?: number) => Promise<number> | number;
+  fakeAsync: (fn: Function, options?: {flush?: boolean}) => (...args: any[]) => any;
+}
+
+const zoneFakeAsyncAdapter: ɵFakeAsyncAdapter = {
+  discardPeriodicTasks: () => withFakeAsyncTestModule((m) => m.discardPeriodicTasks()),
+  fakeAsync: (fn, options) => withFakeAsyncTestModule((m) => m.fakeAsync(fn, options)),
+  flush: (maxTurns) => withFakeAsyncTestModule((m) => m.flush(maxTurns)),
+  flushMicrotasks: () => withFakeAsyncTestModule((m) => m.flushMicrotasks()),
+  resetFakeAsyncZone: () => withFakeAsyncTestModule((m) => m.resetFakeAsyncZone()),
+  tick: (millis, tickOptions) => withFakeAsyncTestModule((m) => m.tick(millis, tickOptions)),
+};
+
+let _fakeAsyncAdapter: ɵFakeAsyncAdapter = zoneFakeAsyncAdapter;

@@ -1,4 +1,4 @@
-load("//tools:defaults.bzl", "angular_jasmine_test", "ng_web_test_suite", "ts_project")
+load("//tools:defaults.bzl", "angular_jasmine_test", "ng_web_test_suite", "ts_project", "zoneless_jasmine_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -23,6 +23,7 @@ ts_project(
         ["**/*.ts"],
         exclude = UTILS + [
             "**/*_node_only_spec.ts",
+            "**/*_zoneless_spec.ts",
         ],
     ),
     # Visible to //:saucelabs_unit_tests_poc target
@@ -72,6 +73,25 @@ ts_project(
         "//packages/platform-server",
         "//packages/platform-server/testing",
         "//packages/private/testing",
+    ],
+)
+
+ts_project(
+    name = "zoneless_test_lib",
+    testonly = True,
+    srcs = ["fake_async_zoneless_spec.ts"],
+    deps = [
+        "//:node_modules/zone.js",
+        "//packages/core",
+        "//packages/core/testing",
+        "//packages/platform-browser",
+    ],
+)
+
+zoneless_jasmine_test(
+    name = "zoneless_test",
+    data = [
+        ":zoneless_test_lib",
     ],
 )
 
