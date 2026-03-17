@@ -340,7 +340,7 @@ describe('zoneless fake async', () => {
       clearInterval(id);
     }));
 
-    xit('should flush tasks', fakeAsync(() => {
+    it('should flush tasks', fakeAsync(() => {
       let ran = false;
       setTimeout(() => {
         ran = true;
@@ -350,7 +350,7 @@ describe('zoneless fake async', () => {
       expect(ran).toEqual(true);
     }));
 
-    xit('should flush multiple tasks', fakeAsync(() => {
+    it('should flush multiple tasks', fakeAsync(async () => {
       let ran = false;
       let ran2 = false;
       setTimeout(() => {
@@ -360,14 +360,14 @@ describe('zoneless fake async', () => {
         ran2 = true;
       }, 30);
 
-      let elapsed = flush();
+      const elapsed = await flush();
 
       expect(ran).toEqual(true);
       expect(ran2).toEqual(true);
       expect(elapsed).toEqual(30);
     }));
 
-    xit('should move periodic tasks', fakeAsync(() => {
+    xit('should move periodic tasks', fakeAsync(async () => {
       let ran = false;
       let count = 0;
       setInterval(() => {
@@ -377,7 +377,7 @@ describe('zoneless fake async', () => {
         ran = true;
       }, 35);
 
-      let elapsed = flush();
+      let elapsed = await flush();
 
       expect(count).toEqual(3);
       expect(ran).toEqual(true);
@@ -439,11 +439,7 @@ class SimpleFakeAsyncAdapter implements ɵFakeAsyncAdapter {
     const current = this._getCurrent();
 
     const start = current.now;
-
-    this._tick();
-
-    const elapsed = current.now - start;
-    return this.flushMicrotasks().then(() => elapsed);
+    return this._tick().then(() => current.now - start);
   }
 
   flushMicrotasks(): Promise<void> {
@@ -522,7 +518,7 @@ class SimpleFakeAsyncAdapter implements ɵFakeAsyncAdapter {
     const current = this._getCurrent();
 
     const start = current.now;
-    const end = millis !== undefined ? start + millis : Infinity;
+    const end = millis !== undefined ? start + millis : undefined;
 
     let task: CurrentSimpleFakeAsync['taskQueue'][number] | undefined;
     while ((task = this._getNextTaskToRun(end))) {
